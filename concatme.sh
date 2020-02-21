@@ -50,17 +50,102 @@ CopyMeFunction () {
 logging "Start of CopyMe function"
 
 
-
 logging "End of CopyMe function"
 
 }
 
 
-BuildFileName () {
+AddFilePathTag () {
+
+logging "Start of AddFilePathTag function"
+
+UNDONECOMPANY=`echo "$COMPANYSUBCOMPANY" | sed 's/_/\//g'`
+FILEPATHTAG=`echo "<filepath>$COUNTRY/$UNDONECOMPANY/$YEARMONTH/$ORIGINALFILENAME</filepath>"`
+
+debugging "File Path Tag is: $FILEPATHTAG"
+
+echo "$FILEPATHTAG" >> "${FILEPATH}/${FILENAME}"
+
+logging "End of AddFilePathTag function"
+
+}
+
+
+AddData () {
+
+logging "Start of AddData function"
+
+for ORIGINALFILENAME in `ls "$COMPANYFOLDERLONG" | grep -o "^[A-Z]*_[A-Z]*_[A-Z]*_[A-Z]*_${YEARMONTH}.*"`
+do
+SEDCLOSINGDATASETTAG=`echo "<\/$DATASET>"`
+CLOSINGDATASETTAG=`echo "</$DATASET>"`
+debugging "Closing DataSet Tag is: $CLOSINGDATASETTAG"
+cat "$COMPANYFOLDERLONG/$ORIGINALFILENAME" | grep -v "xml version" | sed s/$SEDCLOSINGDATASETTAG//g >> "${FILEPATH}/${FILENAME}"
+
+AddFilePathTag
+
+echo "$CLOSINGDATASETTAG" >> "${FILEPATH}/${FILENAME}"
+
+done
+
+
+logging "End of AddData function"
+
+}
+
+
+AddHeaderRows () {
+
+logging "Start of AddHeaderRows function"
+
+echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>" >> "${FILEPATH}/${FILENAME}"
+echo "<root>" >> "${FILEPATH}/${FILENAME}"
+
+logging "End of AddHeaderRows function"
+
+}
+
+AddTrailerRow () {
+
+logging "Start of AddTrailerRow function"
+
+echo "</root>" >> "${FILEPATH}/${FILENAME}"
+
+logging "End of AddTrailerRow function"
+
+}
+
+
+CreateFiles () {
+
+logging "Start of CreateFiles function"
+
+debugging "I would run: mkdir -p ${FILEPATH}"
+mkdir -p "${FILEPATH}"
+debugging "I would run: touch ${FILEPATH}/${FILENAME}"
+touch "${FILEPATH}/${FILENAME}"
+
+AddHeaderRows
+AddData
+AddTrailerRow
+
+logging "End of CreateFiles function"
+
+}
+
+
+BuildFileNameAndPath () {
 
 logging "Start of BuildFileName function"
 
-DetermineUniqueYearMonth
+COUNTER=`expr 0 + 1`
+
+FILEPATH="${DESTINATIONLOCATION}/${DATASET}/${COUNTRYFOLDER}/${PARTITIONCOMPANYFOLDER}"
+FILENAME="${SUBCOMPANY}_${YEARMONTH}_${COUNTER}.xml"
+debugging "Filepath will be: ${FILEPATH}"
+debugging "Filename will be: ${FILENAME}"
+
+CreateFiles
 
 logging "End of BuildFileName function"
 
@@ -77,6 +162,8 @@ debugging "Sub Company(s) is: $SUBCOMPANY"
 for YEARMONTH in `ls "$COMPANYFOLDERLONG" | awk -F- '{print $1"-"$2}' | grep -o .......$ | sort -u`
 do
 debugging "Year-Month: $YEARMONTH"
+BuildFileNameAndPath
+
 done
 
 logging "End of DetermineUniqueYearMonth function"
@@ -92,11 +179,12 @@ debugging "Splitting: $COMPANYSUBCOMPANY"
 
 COMPANY=`echo "$COMPANYSUBCOMPANY" | awk -F_ '{print $1}'`
 SUBCOMPANY=`echo "$COMPANYSUBCOMPANY" | sed s/"$COMPANY"//g | sed s/^_//g`
-PARTITIONCOMPANY=`echo partition_company="$COMPANY"`
+PARTITIONCOMPANYFOLDER=`echo partition_company="$COMPANY"`
 debugging "Company is: $COMPANY"
 debugging "Sub Company(s) is: $SUBCOMPANY"
+debugging "Partition Company(s) is: $PARTITIONCOMPANYFOLDER"
 
-BuildFileName
+DetermineUniqueYearMonth
 
 
 logging "End of SplitCompanies function"
@@ -129,6 +217,7 @@ CountryIdentifier () {
 
 logging "Start of CountryIdentifier function"
 
+#for COUNTRYFOLDERLONG in `ls -d "$DATASET"/* | head -1`
 for COUNTRYFOLDERLONG in `ls -d "$DATASET"/*`
 do
 
