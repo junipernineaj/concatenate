@@ -11,7 +11,7 @@ OIFS="$IFS"
 IFS=$'\n'
 LOGDATETIMESTAMP=`date "+%Y%m%d-%H%M%S"`
 FILELOCATION="/Volumes/ExtremeSSD/Transform"
-DESTINATIONLOCATION="/Users/aj9/Development/concat/CONCATENATION"
+DESTINATIONLOCATION="/Users/aj9/Development/concat/CONCATENATION-BY-YEAR"
 
 DATASET=$1
 COUNTRY=$2
@@ -120,9 +120,9 @@ CreateFiles () {
 
 logging "Start of CreateFiles function"
 
-debugging "I would run: mkdir -p ${FILEPATH}"
+logging "Running: mkdir -p ${FILEPATH}"
 mkdir -p "${FILEPATH}"
-debugging "I would run: touch ${FILEPATH}/${FILENAME}"
+logging "Running: touch ${FILEPATH}/${FILENAME}"
 touch "${FILEPATH}/${FILENAME}"
 
 AddHeaderRows
@@ -162,6 +162,15 @@ debugging "Sub Company(s) is: $SUBCOMPANY"
 for YEARMONTH in `ls "$COMPANYFOLDERLONG" | awk -F- '{print $1"-"$2}' | grep -o .......$ | sort -u`
 do
 debugging "Year-Month: $YEARMONTH"
+
+#FUDGE
+
+YEAR=`echo $YEARMONTH | awk -F"-" '{print $1}'`
+debugging "Year: $YEAR"
+YEARMONTH=$YEAR
+debugging "Year-Month: $YEARMONTH"
+
+
 BuildFileNameAndPath
 
 done
