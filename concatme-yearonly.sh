@@ -10,8 +10,10 @@
 OIFS="$IFS"
 IFS=$'\n'
 LOGDATETIMESTAMP=`date "+%Y%m%d-%H%M%S"`
-FILELOCATION="/Volumes/ExtremeSSD/Transform"
+#FILELOCATION="/Volumes/ExtremeSSD/Transform"
+FILELOCATION="/Users/aj9/Development/concat"
 DESTINATIONLOCATION="/Users/aj9/Development/concat/CONCATENATION-BY-YEAR"
+COUNTER=`expr 0 + 1`
 
 DATASET=$1
 COUNTRY=$2
@@ -55,6 +57,20 @@ logging "End of CopyMe function"
 }
 
 
+
+CountRowsInFile () {
+
+logging "Start of CountRowsInFile function"
+
+ROWCOUNT=`wc -l "${FILEPATH}/${FILENAME}" | awk '{print $1}' | sed s/" "//g`
+
+debugging "There are $ROWCOUNT rows in $FILENAME"
+
+logging "End of CountRowsInFile function"
+
+}
+
+
 AddFilePathTag () {
 
 logging "Start of AddFilePathTag function"
@@ -71,12 +87,27 @@ logging "End of AddFilePathTag function"
 }
 
 
-AddData () {
+ConcatenateData () {
 
-logging "Start of AddData function"
+logging "Start of ConcatenateData function"
 
-for ORIGINALFILENAME in `ls "$COMPANYFOLDERLONG" | grep -o "^[A-Z]*_[A-Z]*_[A-Z]*_[A-Z]*_${YEARMONTH}.*"`
+for ORIGINALFILENAME in `find -s "$COMPANYFOLDERLONG" -name *xml -print0 | xargs -0 basename` 
 do
+
+debugging "Original File name: $ORIGINALFILENAME"
+
+DetermineYearMonth
+DefineFilename
+CountRowsInFile
+
+if [ $ROWCOUNT -eq 0 ]
+then
+AddHeaderRows
+fi
+
+
+if [ $ROWCOUNT -lt 9999 ]
+then
 SEDCLOSINGDATASETTAG=`echo "<\/$DATASET>"`
 CLOSINGDATASETTAG=`echo "</$DATASET>"`
 logging "Closing DataSet Tag is: $CLOSINGDATASETTAG"
@@ -86,22 +117,26 @@ AddFilePathTag
 
 echo "$CLOSINGDATASETTAG" >> "${FILEPATH}/${FILENAME}"
 
+else
+AddTrailerRow
+COUNTER=`expr $COUNTER + 1`
+fi
+
 done
 
-
-logging "End of AddData function"
+logging "End of ConcatenateData function"
 
 }
 
 
 AddHeaderRows () {
 
-logging "Start of AddHeaderRows function"
+debugging "Start of AddHeaderRows function"
 
 echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>" >> "${FILEPATH}/${FILENAME}"
 echo "<root>" >> "${FILEPATH}/${FILENAME}"
 
-logging "End of AddHeaderRows function"
+debugging "End of AddHeaderRows function"
 
 }
 
@@ -116,20 +151,27 @@ logging "End of AddTrailerRow function"
 }
 
 
-CreateFiles () {
+DefineFilename () {
 
-logging "Start of CreateFiles function"
+logging "Start of DefineFilename function"
 
-logging "Running: mkdir -p ${FILEPATH}"
-mkdir -p "${FILEPATH}"
-logging "Running: touch ${FILEPATH}/${FILENAME}"
+
+if [ ! $SUBCOMPANY ]
+then
+FILENAME="${YEAR}_${COUNTER}.xml"
+else
+FILENAME="${SUBCOMPANY}_${YEAR}_${COUNTER}.xml"
+fi
+
+debugging "Filename will be: ${FILENAME}"
+
+if [ ! "${FILEPATH}/${FILENAME}" ]
+then
+debugging "Running: touch ${FILEPATH}/${FILENAME}"
 touch "${FILEPATH}/${FILENAME}"
+fi
 
-AddHeaderRows
-AddData
-AddTrailerRow
-
-logging "End of CreateFiles function"
+logging "End of DefineFilename function"
 
 }
 
@@ -138,44 +180,32 @@ BuildFileNameAndPath () {
 
 logging "Start of BuildFileName function"
 
-COUNTER=`expr 0 + 1`
-
 FILEPATH="${DESTINATIONLOCATION}/${DATASET}/${COUNTRYFOLDER}/${PARTITIONCOMPANYFOLDER}"
-FILENAME="${SUBCOMPANY}_${YEARMONTH}_${COUNTER}.xml"
-debugging "Filepath will be: ${FILEPATH}"
-debugging "Filename will be: ${FILENAME}"
 
-CreateFiles
+debugging "Running: mkdir -p ${FILEPATH}"
+mkdir -p "${FILEPATH}"
+
+ConcatenateData
 
 logging "End of BuildFileName function"
 
 }
 
 
-DetermineUniqueYearMonth () {
+DetermineYearMonth () {
 
-logging "Start of DetermineUniqueYearMonth function"
+logging "Start of DetermineYearMonth function"
 
 debugging "Company Folder Long is: $COMPANYFOLDERLONG"
 debugging "Sub Company(s) is: $SUBCOMPANY"
 
-for YEARMONTH in `ls "$COMPANYFOLDERLONG" | awk -F- '{print $1"-"$2}' | grep -o .......$ | sort -u`
-do
-debugging "Year-Month: $YEARMONTH"
-
-#FUDGE
+YEARMONTH=`echo "$ORIGINALFILENAME" | awk -F- '{print $1"-"$2}' | grep -o .......$ | sort -u`
 
 YEAR=`echo $YEARMONTH | awk -F"-" '{print $1}'`
 debugging "Year: $YEAR"
-YEARMONTH=$YEAR
 debugging "Year-Month: $YEARMONTH"
 
-
-BuildFileNameAndPath
-
-done
-
-logging "End of DetermineUniqueYearMonth function"
+logging "End of DetermineYearMonth function"
 
 }
 
@@ -193,8 +223,7 @@ debugging "Company is: $COMPANY"
 debugging "Sub Company(s) is: $SUBCOMPANY"
 debugging "Partition Company(s) is: $PARTITIONCOMPANYFOLDER"
 
-DetermineUniqueYearMonth
-
+BuildFileNameAndPath
 
 logging "End of SplitCompanies function"
 

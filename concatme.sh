@@ -10,7 +10,7 @@
 OIFS="$IFS"
 IFS=$'\n'
 LOGDATETIMESTAMP=`date "+%Y%m%d-%H%M%S"`
-FILELOCATION="/Volumes/ExtremeSSD/Transform"
+FILELOCATION="/Users/aj9/Development/concat"
 DESTINATIONLOCATION="/Users/aj9/Development/concat/CONCATENATION"
 
 DATASET=$1
@@ -141,7 +141,14 @@ logging "Start of BuildFileName function"
 COUNTER=`expr 0 + 1`
 
 FILEPATH="${DESTINATIONLOCATION}/${DATASET}/${COUNTRYFOLDER}/${PARTITIONCOMPANYFOLDER}"
+
+if [ ! $SUBCOMPANY ] 
+then
+FILENAME="${YEARMONTH}_${COUNTER}.xml"
+else
 FILENAME="${SUBCOMPANY}_${YEARMONTH}_${COUNTER}.xml"
+fi
+
 debugging "Filepath will be: ${FILEPATH}"
 debugging "Filename will be: ${FILENAME}"
 
@@ -177,8 +184,9 @@ logging "Start of SplitCompanies function"
 
 debugging "Splitting: $COMPANYSUBCOMPANY"
 
-COMPANY=`echo "$COMPANYSUBCOMPANY" | awk -F_ '{print $1}'`
+COMPANY=`echo "$COMPANYSUBCOMPANY" | awk -F_ '{print $1}' | sed s/^_//g`
 SUBCOMPANY=`echo "$COMPANYSUBCOMPANY" | sed s/"$COMPANY"//g | sed s/^_//g`
+
 PARTITIONCOMPANYFOLDER=`echo partition_company="$COMPANY"`
 debugging "Company is: $COMPANY"
 debugging "Sub Company(s) is: $SUBCOMPANY"
