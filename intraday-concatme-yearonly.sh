@@ -10,8 +10,8 @@
 OIFS="$IFS"
 IFS=$'\n'
 LOGDATETIMESTAMP=`date "+%Y%m%d-%H%M%S"`
-FILELOCATION="/Volumes/ExtremeSSD/Transform"
-#FILELOCATION="/Users/aj9/Development/concat"
+#FILELOCATION="/Volumes/ExtremeSSD/Transform"
+FILELOCATION="/Users/aj9/Development/concat"
 DESTINATIONLOCATION="/Users/aj9/Development/concat/CONCATENATION-BY-YEAR"
 COUNTER=`expr 0 + 1`
 
@@ -91,7 +91,7 @@ ConcatenateData () {
 
 logging "Start of ConcatenateData function"
 
-for ORIGINALFILENAME in `find -s "$COMPANYFOLDERLONG" -name "DD*xml" -print0 | xargs -0 basename` 
+for ORIGINALFILENAME in `find -s "$COMPANYFOLDERLONG" -name "intraday*xml" -print0 | xargs -0 basename` 
 do
 
 debugging "Original File name: $ORIGINALFILENAME"
@@ -159,9 +159,14 @@ logging "Start of DefineFilename function"
 
 if [ ! $SUBCOMPANY ]
 then
-FILENAME="${YEAR}_${COUNTER}.xml"
+FILENAME="${YEAR}_intraday_${COUNTER}.xml"
 else
-FILENAME="${SUBCOMPANY}_${YEAR}_${COUNTER}.xml"
+FILENAME="${SUBCOMPANY}_${YEAR}_intraday_${COUNTER}.xml"
+
+	if [ $FILENAME == "^_H*.xml" ]
+	then
+	FILENAME="${YEAR}_intraday_${COUNTER}.xml"
+	fi
 fi
 
 debugging "Filename will be: ${FILENAME}"
@@ -204,7 +209,7 @@ logging "Start of DetermineYearMonth function"
 debugging "Company Folder Long is: $COMPANYFOLDERLONG"
 debugging "Sub Company(s) is: $SUBCOMPANY"
 
-YEARMONTH=`echo "$ORIGINALFILENAME" | awk -F- '{print $1"-"$2}' | grep -o .......$ | sort -u`
+YEARMONTH=`echo "$ORIGINALFILENAME" | awk -F- '{print $2"-"$3}' | grep -o .......$`
 
 YEAR=`echo $YEARMONTH | awk -F"-" '{print $1}'`
 debugging "Year: $YEAR"
@@ -222,7 +227,7 @@ logging "Start of SplitCompanies function"
 debugging "Splitting: $COMPANYSUBCOMPANY"
 
 COMPANY=`echo "$COMPANYSUBCOMPANY" | awk -F_ '{print $1}'`
-SUBCOMPANY=`echo "$COMPANYSUBCOMPANY" | sed s/"$COMPANY"//g | sed s/_H//g`
+SUBCOMPANY=`echo "$COMPANYSUBCOMPANY" | sed s/"$COMPANY"//g | sed s/^_//g`
 PARTITIONCOMPANYFOLDER=`echo partition_company="$COMPANY"`
 debugging "Company is: $COMPANY"
 debugging "Sub Company(s) is: $SUBCOMPANY"
